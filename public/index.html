@@ -3,38 +3,89 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Team Garuda - Video Share</title>
+  <title>Team Garuda Video Share</title>
   <style>
-    body { background: #0f172a; color: white; font-family: sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
-    .card { background: #1e293b; padding: 2rem; border-radius: 12px; width: 90%; max-width: 400px; text-align: center; }
-    h2 { color: #38bdf8; margin-top: 0; }
-    input, button { width: 100%; margin-top: 12px; padding: 12px; box-sizing: border-box; border-radius: 6px; border: none; }
-    input[type="password"] { background: #334155; color: white; }
-    button { background: #0284c7; color: white; font-weight: bold; cursor: pointer; }
+    * { box-sizing: border-box; }
+    body { background: #0f172a; color: white; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; display: flex; flex-direction: column; align-items: center; padding: 2rem 1rem; margin: 0; min-height: 100vh; }
+    h1, h2 { color: #38bdf8; text-align: center; margin-top: 0; }
+    
+    /* Gallery Section */
+    .gallery-container { width: 100%; max-width: 650px; display: flex; flex-direction: column; gap: 1.5rem; margin-top: 1rem; }
+    .video-card { background: #1e293b; padding: 1rem; border-radius: 12px; border: 1px solid #334155; }
+    video { width: 100%; border-radius: 8px; background: #000; outline: none; }
+    
+    /* Admin Panel (Hidden by default) */
+    .admin-panel { background: #1e293b; border: 1px solid #0284c7; padding: 1.5rem; border-radius: 12px; width: 100%; max-width: 500px; margin-bottom: 2rem; display: none; }
+    input, button { width: 100%; margin-top: 10px; padding: 12px; border-radius: 6px; border: none; font-size: 14px; }
+    input[type="password"], input[type="file"] { background: #334155; color: white; }
+    button { background: #0284c7; color: white; font-weight: bold; cursor: pointer; transition: 0.2s; }
     button:hover { background: #0369a1; }
-    video { width: 100%; margin-top: 15px; border-radius: 8px; display: none; }
-    #status { margin-top: 15px; font-size: 14px; color: #94a3b8; }
+    #status { margin-top: 10px; font-size: 14px; text-align: center; color: #94a3b8; }
+    .no-videos { text-align: center; color: #94a3b8; font-size: 1.1rem; margin-top: 2rem; }
   </style>
 </head>
 <body>
-  <div class="card">
-    <h2>Team Garuda Video Share</h2>
+
+  <!-- Admin Upload Form (Only appears when ?admin=true is in the URL) -->
+  <div class="admin-panel" id="adminPanel">
+    <h2>Admin Dashboard</h2>
     <form id="uploadForm">
       <input type="file" id="videoInput" accept="video/*" required />
       <input type="password" id="passwordInput" placeholder="Enter Admin Password" required />
       <button type="submit">Upload Video</button>
     </form>
     <div id="status"></div>
-    <video id="player" controls></video>
+  </div>
+
+  <!-- Public Visitor Title & Video Stream -->
+  <h1>Team Garuda Videos</h1>
+  <div class="gallery-container" id="videoGallery">
+    <div class="no-videos">Loading videos...</div>
   </div>
 
   <script>
+    const adminPanel = document.getElementById('adminPanel');
     const form = document.getElementById('uploadForm');
     const fileInput = document.getElementById('videoInput');
     const passwordInput = document.getElementById('passwordInput');
     const status = document.getElementById('status');
-    const player = document.getElementById('player');
+    const gallery = document.getElementById('videoGallery');
 
+    // 1. Check if the URL has ?admin=true to show the upload interface
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('admin') === 'true') {
+      adminPanel.style.display = 'block';
+    }
+
+    // 2. Fetch and render all uploaded videos for visitors
+    async function loadVideos() {
+      try {
+        const res = await fetch('/videos');
+        const urls = await res.json();
+        
+        if (!urls || urls.length === 0) {
+          gallery.innerHTML = '<div class="no-videos">No videos available yet.</div>';
+          return;
+        }
+
+        gallery.innerHTML = '';
+        urls.forEach(url => {
+          const card = document.createElement('div');
+          card.className = 'video-card';
+          
+          const video = document.createElement('video');
+          video.src = url;
+          video.controls = true;
+          
+          card.appendChild(video);
+          gallery.appendChild(card);
+        });
+      } catch (err) {
+        gallery.innerHTML = '<div class="no-videos">Error loading videos.</div>';
+      }
+    }
+
+    // 3. Admin upload handler
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       if (!fileInput.files[0]) return;
@@ -50,16 +101,19 @@
         const data = await res.json();
         if (res.ok) {
           status.innerText = 'Upload successful!';
-          player.src = data.url;
-          player.style.display = 'block';
           passwordInput.value = '';
+          fileInput.value = '';
+          loadVideos(); // Automatically refresh the video list
         } else {
           status.innerText = data.error || 'Upload failed.';
         }
       } catch (err) {
-        status.innerText = 'Error connecting to server.';
+        status.innerText = 'Server connection error.';
       }
     });
+
+    // Run video loader on page open
+    loadVideos();
   </script>
 </body>
 </html>
