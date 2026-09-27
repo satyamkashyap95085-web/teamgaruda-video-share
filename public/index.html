@@ -7,9 +7,11 @@
   <style>
     body { background: #0f172a; color: white; font-family: sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
     .card { background: #1e293b; padding: 2rem; border-radius: 12px; width: 90%; max-width: 400px; text-align: center; }
-    h2 { color: #38bdf8; }
-    input, button { width: 100%; margin-top: 15px; padding: 12px; box-sizing: border-box; border-radius: 6px; border: none; }
+    h2 { color: #38bdf8; margin-top: 0; }
+    input, button { width: 100%; margin-top: 12px; padding: 12px; box-sizing: border-box; border-radius: 6px; border: none; }
+    input[type="password"] { background: #334155; color: white; }
     button { background: #0284c7; color: white; font-weight: bold; cursor: pointer; }
+    button:hover { background: #0369a1; }
     video { width: 100%; margin-top: 15px; border-radius: 8px; display: none; }
     #status { margin-top: 15px; font-size: 14px; color: #94a3b8; }
   </style>
@@ -19,6 +21,7 @@
     <h2>Team Garuda Video Share</h2>
     <form id="uploadForm">
       <input type="file" id="videoInput" accept="video/*" required />
+      <input type="password" id="passwordInput" placeholder="Enter Admin Password" required />
       <button type="submit">Upload Video</button>
     </form>
     <div id="status"></div>
@@ -28,6 +31,7 @@
   <script>
     const form = document.getElementById('uploadForm');
     const fileInput = document.getElementById('videoInput');
+    const passwordInput = document.getElementById('passwordInput');
     const status = document.getElementById('status');
     const player = document.getElementById('player');
 
@@ -37,6 +41,7 @@
 
       const formData = new FormData();
       formData.append('video', fileInput.files[0]);
+      formData.append('password', passwordInput.value);
 
       status.innerText = 'Uploading video... Please wait.';
 
@@ -47,12 +52,17 @@
           status.innerText = 'Upload successful!';
           player.src = data.url;
           player.style.display = 'block';
+          passwordInput.value = '';
         } else {
-          status.innerText = 'Upload failed.';
+          status.innerText = data.error || 'Upload failed.';
         }
       } catch (err) {
         status.innerText = 'Error connecting to server.';
       }
+    });
+  </script>
+</body>
+</html>
     });
   </script>
 </body>
