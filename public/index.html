@@ -9,12 +9,10 @@
     body { background: #0f172a; color: white; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; display: flex; flex-direction: column; align-items: center; padding: 2rem 1rem; margin: 0; min-height: 100vh; }
     h1, h2 { color: #38bdf8; text-align: center; margin-top: 0; }
     
-    /* Gallery Section */
     .gallery-container { width: 100%; max-width: 650px; display: flex; flex-direction: column; gap: 1.5rem; margin-top: 1rem; }
     .video-card { background: #1e293b; padding: 1rem; border-radius: 12px; border: 1px solid #334155; }
     video { width: 100%; border-radius: 8px; background: #000; outline: none; }
     
-    /* Admin Panel (Hidden by default) */
     .admin-panel { background: #1e293b; border: 1px solid #0284c7; padding: 1.5rem; border-radius: 12px; width: 100%; max-width: 500px; margin-bottom: 2rem; display: none; }
     input, button { width: 100%; margin-top: 10px; padding: 12px; border-radius: 6px; border: none; font-size: 14px; }
     input[type="password"], input[type="file"] { background: #334155; color: white; }
@@ -26,9 +24,9 @@
 </head>
 <body>
 
-  <!-- Admin Upload Form (Only appears when ?admin=true is in the URL) -->
+  <!-- Admin Panel (Shows only with ?admin=true in URL) -->
   <div class="admin-panel" id="adminPanel">
-    <h2>Admin Dashboard</h2>
+    <h2>Admin Upload</h2>
     <form id="uploadForm">
       <input type="file" id="videoInput" accept="video/*" required />
       <input type="password" id="passwordInput" placeholder="Enter Admin Password" required />
@@ -37,7 +35,7 @@
     <div id="status"></div>
   </div>
 
-  <!-- Public Visitor Title & Video Stream -->
+  <!-- Public Visitor Gallery -->
   <h1>Team Garuda Videos</h1>
   <div class="gallery-container" id="videoGallery">
     <div class="no-videos">Loading videos...</div>
@@ -51,19 +49,19 @@
     const status = document.getElementById('status');
     const gallery = document.getElementById('videoGallery');
 
-    // 1. Check if the URL has ?admin=true to show the upload interface
+    // 1. Show admin panel if URL has ?admin=true
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('admin') === 'true') {
       adminPanel.style.display = 'block';
     }
 
-    // 2. Fetch and render all uploaded videos for visitors
+    // 2. Fetch and render videos
     async function loadVideos() {
       try {
         const res = await fetch('/videos');
         const urls = await res.json();
         
-        if (!urls || urls.length === 0) {
+        if (!Array.isArray(urls) || urls.length === 0) {
           gallery.innerHTML = '<div class="no-videos">No videos available yet.</div>';
           return;
         }
@@ -85,7 +83,7 @@
       }
     }
 
-    // 3. Admin upload handler
+    // 3. Handle upload
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       if (!fileInput.files[0]) return;
@@ -103,7 +101,7 @@
           status.innerText = 'Upload successful!';
           passwordInput.value = '';
           fileInput.value = '';
-          loadVideos(); // Automatically refresh the video list
+          loadVideos();
         } else {
           status.innerText = data.error || 'Upload failed.';
         }
@@ -112,7 +110,6 @@
       }
     });
 
-    // Run video loader on page open
     loadVideos();
   </script>
 </body>
