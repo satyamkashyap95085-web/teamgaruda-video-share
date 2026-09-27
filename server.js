@@ -11,44 +11,54 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.static('public'));
 
-// Configure Cloudinary
+// Configure Cloudinary Credentials
 cloudinary.config({
   cloud_name: process.env.CLOUD_NAME,
   api_key: process.env.CLOUD_API_KEY,
   api_secret: process.env.CLOUD_API_SECRET
 });
 
-// Setup Multer Storage for Cloudinary
+// Configure Multer Storage for Cloudinary
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
-  params: {
-    folder: 'team_garuda_videos',
-    resource_type: 'video',
-    allowed_formats: ['mp4', 'mov', 'avi', 'mkv']
+  params: async (req, file) => {
+    return {
+      folder: 'team_garuda_videos',
+      resource_type: 'video',
+      public_id: Date.now() + '-' + file.originalname.replace(/[^a-zA-Z0-9]/g, "_")
+    };
   }
 });
 
 const upload = multer({ 
-  storage,
-  limits: { fileSize: 100 * 1024 * 1024 }
+  storage: storage,
+  limits: { fileSize: 100 * 1024 * 1024 } // 100 MB Limit
 });
 
 // 1. Admin Upload Route
-app.post('/upload', upload.single('video'), (req, res) => {
-  const adminPassword = process.env.ADMIN_PASSWORD || 'garuda123';
+app.post('/upload', (req, res, next) => {
+  upload.single('video')(req, res, (err) => {
+    const adminPassword = process.env.ADMIN_PASSWORD || 'garuda123';
 
-  if (req.body.password !== adminPassword) {
-    return res.status(401).json({ error: 'Incorrect Admin Password!' });
-  }
+    // Verify Password First
+    if (req.body.password !== adminPassword) {
+      return res.status(401).json({ error: 'Incorrect Admin Password!' });
+    }
 
-  if (!req.file) {
-    return res.status(400).json({ error: 'Please select a valid video file.' });
-  }
+    if (err) {
+      console.error('Upload Error Details:', err);
+      return res.status(500).json({ error: 'Upload failed: ' + (err.message || 'Server error during upload') });
+    }
 
-  res.json({ message: 'Video uploaded successfully!', url: req.file.path });
+    if (!req.file) {
+      return res.status(400).json({ error: 'Please choose a valid video file.' });
+    }
+
+    res.json({ message: 'Video uploaded successfully!', url: req.file.path });
+  });
 });
 
-// 2. Public Route: Fetch all uploaded videos for visitors
+// 2. Public Route: Get all uploaded videos
 app.get('/videos', async (req, res) => {
   try {
     const result = await cloudinary.api.resources({
@@ -60,7 +70,7 @@ app.get('/videos', async (req, res) => {
     const videoUrls = result.resources.map(file => file.secure_url);
     res.json(videoUrls);
   } catch (error) {
-    console.error('Cloudinary Fetch Error:', error);
+    console.error('Cloudinary API Error:', error);
     res.status(500).json({ error: 'Failed to fetch videos.', details: error.message });
   }
 });
