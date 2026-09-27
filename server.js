@@ -31,10 +31,18 @@ const upload = multer({
   limits: { fileSize: 100 * 1024 * 1024 }
 });
 
+// Upload Route with Password Verification
 app.post('/upload', upload.single('video'), (req, res) => {
+  const adminPassword = process.env.ADMIN_PASSWORD || 'garuda123'; // Default password
+
+  if (req.body.password !== adminPassword) {
+    return res.status(401).json({ error: 'Incorrect Admin Password! Upload denied.' });
+  }
+
   if (!req.file) {
     return res.status(400).json({ error: 'Please choose a valid video file.' });
   }
+
   res.json({
     message: 'Video uploaded successfully!',
     url: req.file.path
