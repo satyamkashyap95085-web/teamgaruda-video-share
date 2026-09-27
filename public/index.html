@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Team Garuda - Video Share</title>
+  <style>
+    body { background: #0f172a; color: white; font-family: sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+    .card { background: #1e293b; padding: 2rem; border-radius: 12px; width: 90%; max-width: 400px; text-align: center; }
+    h2 { color: #38bdf8; }
+    input, button { width: 100%; margin-top: 15px; padding: 12px; box-sizing: border-box; border-radius: 6px; border: none; }
+    button { background: #0284c7; color: white; font-weight: bold; cursor: pointer; }
+    video { width: 100%; margin-top: 15px; border-radius: 8px; display: none; }
+    #status { margin-top: 15px; font-size: 14px; color: #94a3b8; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>Team Garuda Video Share</h2>
+    <form id="uploadForm">
+      <input type="file" id="videoInput" accept="video/*" required />
+      <button type="submit">Upload Video</button>
+    </form>
+    <div id="status"></div>
+    <video id="player" controls></video>
+  </div>
+
+  <script>
+    const form = document.getElementById('uploadForm');
+    const fileInput = document.getElementById('videoInput');
+    const status = document.getElementById('status');
+    const player = document.getElementById('player');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!fileInput.files[0]) return;
+
+      const formData = new FormData();
+      formData.append('video', fileInput.files[0]);
+
+      status.innerText = 'Uploading video... Please wait.';
+
+      try {
+        const res = await fetch('/upload', { method: 'POST', body: formData });
+        const data = await res.json();
+        if (res.ok) {
+          status.innerText = 'Upload successful!';
+          player.src = data.url;
+          player.style.display = 'block';
+        } else {
+          status.innerText = 'Upload failed.';
+        }
+      } catch (err) {
+        status.innerText = 'Error connecting to server.';
+      }
+    });
+  </script>
+</body>
+</html>
