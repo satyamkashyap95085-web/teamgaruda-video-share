@@ -16,7 +16,7 @@
     input[type="password"], input[type="file"] { background: #334155; color: white; }
     button { background: #0284c7; color: white; font-weight: bold; cursor: pointer; transition: 0.2s; }
     button:hover { background: #0369a1; }
-    #status { margin-top: 10px; font-size: 14px; text-align: center; color: #94a3b8; }
+    #status { margin-top: 10px; font-size: 14px; text-align: center; color: #38bdf8; font-weight: bold; }
     .no-videos { text-align: center; color: #94a3b8; font-size: 1.1rem; margin-top: 2rem; }
   </style>
 </head>
@@ -27,7 +27,7 @@
     <form id="uploadForm">
       <input type="file" id="videoInput" accept="video/*" required />
       <input type="password" id="passwordInput" placeholder="Enter Admin Password" required />
-      <button type="submit">Upload Video</button>
+      <button type="submit" id="uploadBtn">Upload Video</button>
     </form>
     <div id="status"></div>
   </div>
@@ -44,6 +44,7 @@
     const passwordInput = document.getElementById('passwordInput');
     const status = document.getElementById('status');
     const gallery = document.getElementById('videoGallery');
+    const uploadBtn = document.getElementById('uploadBtn');
 
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('admin') === 'true') {
@@ -55,7 +56,7 @@
         const res = await fetch('/videos');
         const urls = await res.json();
         if (!Array.isArray(urls) || urls.length === 0) {
-          gallery.innerHTML = '<div class="no-videos">No videos available yet.</div>';
+          gallery.innerHTML = '<div class="no-videos">No videos uploaded yet.</div>';
           return;
         }
         gallery.innerHTML = '';
@@ -78,10 +79,12 @@
       const file = fileInput.files[0];
       if (!file) return;
 
-      status.innerText = 'Verifying password...';
+      status.style.color = '#38bdf8';
+      status.innerText = 'Verifying admin authorization...';
+      uploadBtn.disabled = true;
 
       try {
-        // 1. Verify Password with server
+        // 1. Verify Password with Render
         const verifyRes = await fetch('/verify-admin', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -90,17 +93,18 @@
         const verifyData = await verifyRes.json();
 
         if (!verifyRes.ok) {
+          status.style.color = '#ef4444';
           status.innerText = verifyData.error || 'Password verification failed.';
+          uploadBtn.disabled = false;
           return;
         }
 
         // 2. Direct Upload from Browser to Cloudinary
-        status.innerText = 'Uploading video directly to Cloudinary... Please wait.';
+        status.innerText = 'Uploading video... Please keep this page open.';
 
         const formData = new FormData();
         formData.append('file', file);
-        formData.append('upload_preset', 'garuda_preset'); // Created in Cloudinary
-        formData.append('folder', 'team_garuda_videos');
+        formData.append('upload_preset', 'garuda_preset');
 
         const cloudName = verifyData.cloudName;
         const uploadRes = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/video/upload`, {
@@ -111,15 +115,20 @@
         const uploadData = await uploadRes.json();
 
         if (uploadRes.ok) {
+          status.style.color = '#22c55e';
           status.innerText = 'Upload successful!';
           passwordInput.value = '';
           fileInput.value = '';
-          setTimeout(loadVideos, 2000);
+          setTimeout(loadVideos, 1500);
         } else {
-          status.innerText = 'Cloudinary Upload Failed: ' + (uploadData.error?.message || 'Unknown error');
+          status.style.color = '#ef4444';
+          status.innerText = 'Upload Failed: ' + (uploadData.error?.message || 'Check Cloudinary preset name.');
         }
       } catch (err) {
-        status.innerText = 'Network error during upload.';
+        status.style.color = '#ef4444';
+        status.innerText = 'Network error during upload. Verify connection and try again.';
+      } finally {
+        uploadBtn.disabled = false;
       }
     });
 
