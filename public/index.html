@@ -6,7 +6,7 @@
   <title>Team Garuda Video Share</title>
   <style>
     * { box-sizing: border-box; }
-    body { background: #0f172a; color: white; font-family: -apple-system, BlinkMacSystemFont, sans-serif; display: flex; flex-direction: column; align-items: center; padding: 2rem 1rem; margin: 0; min-height: 100vh; }
+    body { background: #0f172a; color: white; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; display: flex; flex-direction: column; align-items: center; padding: 2rem 1rem; margin: 0; min-height: 100vh; }
     h1, h2 { color: #38bdf8; text-align: center; margin-top: 0; }
     .gallery-container { width: 100%; max-width: 650px; display: flex; flex-direction: column; gap: 1.5rem; margin-top: 1rem; }
     .video-card { background: #1e293b; padding: 1rem; border-radius: 12px; border: 1px solid #334155; }
@@ -80,11 +80,11 @@
       if (!file) return;
 
       status.style.color = '#38bdf8';
-      status.innerText = 'Verifying admin authorization...';
+      status.innerText = 'Verifying admin password...';
       uploadBtn.disabled = true;
 
       try {
-        // 1. Verify Password with Render
+        // 1. Verify Password with Render server
         const verifyRes = await fetch('/verify-admin', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -99,12 +99,13 @@
           return;
         }
 
-        // 2. Direct Upload from Browser to Cloudinary
-        status.innerText = 'Uploading video... Please keep this page open.';
+        // 2. Direct Upload to Cloudinary
+        status.innerText = 'Uploading video... Please wait.';
 
         const formData = new FormData();
         formData.append('file', file);
         formData.append('upload_preset', 'garuda_preset');
+        formData.append('folder', 'team_garuda_videos');
 
         const cloudName = verifyData.cloudName;
         const uploadRes = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/video/upload`, {
@@ -126,7 +127,7 @@
         }
       } catch (err) {
         status.style.color = '#ef4444';
-        status.innerText = 'Network error during upload. Verify connection and try again.';
+        status.innerText = 'Network error during upload.';
       } finally {
         uploadBtn.disabled = false;
       }
